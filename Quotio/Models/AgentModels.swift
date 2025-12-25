@@ -15,9 +15,9 @@ enum CLIAgent: String, CaseIterable, Identifiable, Codable, Sendable {
     case ampCLI = "amp"
     case openCode = "opencode"
     case factoryDroid = "factory-droid"
-    
+
     var id: String { rawValue }
-    
+
     var displayName: String {
         switch self {
         case .claudeCode: return "Claude Code"
@@ -28,18 +28,18 @@ enum CLIAgent: String, CaseIterable, Identifiable, Codable, Sendable {
         case .factoryDroid: return "Factory Droid"
         }
     }
-    
+
     var description: String {
         switch self {
-        case .claudeCode: return "Anthropic's AI coding assistant with Claude models"
-        case .codexCLI: return "OpenAI's lightweight coding agent for terminal"
-        case .geminiCLI: return "Google's Gemini-powered CLI assistant"
-        case .ampCLI: return "Sourcegraph's AI coding assistant"
-        case .openCode: return "Open-source AI coding tool"
-        case .factoryDroid: return "GitHub Spark's AI coding agent"
+        case .claudeCode: return "Anthropic's official CLI for Claude models"
+        case .codexCLI: return "OpenAI's Codex CLI for GPT-5 models"
+        case .geminiCLI: return "Google's Gemini CLI for Gemini models"
+        case .ampCLI: return "Sourcegraph's Amp coding assistant"
+        case .openCode: return "The open source AI coding agent"
+        case .factoryDroid: return "Factory's AI coding agent"
         }
     }
-    
+
     var configType: AgentConfigType {
         switch self {
         case .claudeCode: return .both
@@ -50,7 +50,7 @@ enum CLIAgent: String, CaseIterable, Identifiable, Codable, Sendable {
         case .factoryDroid: return .file
         }
     }
-    
+
     var binaryNames: [String] {
         switch self {
         case .claudeCode: return ["claude"]
@@ -61,7 +61,7 @@ enum CLIAgent: String, CaseIterable, Identifiable, Codable, Sendable {
         case .factoryDroid: return ["droid", "factory-droid", "fd"]
         }
     }
-    
+
     var configPaths: [String] {
         switch self {
         case .claudeCode: return ["~/.claude/settings.json"]
@@ -72,7 +72,7 @@ enum CLIAgent: String, CaseIterable, Identifiable, Codable, Sendable {
         case .factoryDroid: return ["~/.factory/config.json"]
         }
     }
-    
+
     var docsURL: URL? {
         switch self {
         case .claudeCode: return URL(string: "https://docs.anthropic.com/en/docs/claude-code")
@@ -83,7 +83,7 @@ enum CLIAgent: String, CaseIterable, Identifiable, Codable, Sendable {
         case .factoryDroid: return URL(string: "https://github.com/github/github-spark")
         }
     }
-    
+
     var systemIcon: String {
         switch self {
         case .claudeCode: return "brain.head.profile"
@@ -94,7 +94,7 @@ enum CLIAgent: String, CaseIterable, Identifiable, Codable, Sendable {
         case .factoryDroid: return "cpu"
         }
     }
-    
+
     var color: Color {
         switch self {
         case .claudeCode: return Color(hex: "D97706") ?? .orange
@@ -120,23 +120,23 @@ enum AgentConfigType: String, Codable, Sendable {
 enum ConfigurationMode: String, CaseIterable, Identifiable, Codable, Sendable {
     case automatic = "automatic"
     case manual = "manual"
-    
+
     var id: String { rawValue }
-    
+
     var displayName: String {
         switch self {
         case .automatic: return "Automatic"
         case .manual: return "Manual"
         }
     }
-    
+
     var icon: String {
         switch self {
         case .automatic: return "gearshape.2"
         case .manual: return "doc.text"
         }
     }
-    
+
     var description: String {
         switch self {
         case .automatic: return "Directly update config files and shell profile"
@@ -151,9 +151,9 @@ enum ModelSlot: String, CaseIterable, Identifiable, Codable, Sendable {
     case opus = "opus"
     case sonnet = "sonnet"
     case haiku = "haiku"
-    
+
     var id: String { rawValue }
-    
+
     var displayName: String {
         switch self {
         case .opus: return "Opus (High Intelligence)"
@@ -161,7 +161,7 @@ enum ModelSlot: String, CaseIterable, Identifiable, Codable, Sendable {
         case .haiku: return "Haiku (Fast)"
         }
     }
-    
+
     var envSuffix: String {
         rawValue.uppercased()
     }
@@ -174,19 +174,19 @@ struct AvailableModel: Identifiable, Codable, Hashable, Sendable {
     let name: String
     let provider: String
     let isDefault: Bool
-    
+
     var displayName: String {
         name.split(separator: "-")
             .map { $0.capitalized }
             .joined(separator: " ")
     }
-    
+
     static let defaultModels: [ModelSlot: AvailableModel] = [
         .opus: AvailableModel(id: "opus", name: "gemini-claude-opus-4-5-thinking", provider: "openai", isDefault: true),
         .sonnet: AvailableModel(id: "sonnet", name: "gemini-claude-sonnet-4-5", provider: "openai", isDefault: true),
         .haiku: AvailableModel(id: "haiku", name: "gemini-2.5-flash-lite", provider: "openai", isDefault: true)
     ]
-    
+
     static let allModels: [AvailableModel] = [
         AvailableModel(id: "gemini-claude-opus-4-5-thinking", name: "gemini-claude-opus-4-5-thinking", provider: "openai", isDefault: false),
         AvailableModel(id: "gemini-claude-sonnet-4-5", name: "gemini-claude-sonnet-4-5", provider: "openai", isDefault: false),
@@ -213,9 +213,9 @@ struct AgentStatus: Identifiable, Sendable {
     var binaryPath: String?
     var version: String?
     var lastConfigured: Date?
-    
+
     var id: String { agent.id }
-    
+
     var statusText: String {
         if !installed {
             return "Not Installed"
@@ -225,7 +225,7 @@ struct AgentStatus: Identifiable, Sendable {
             return "Installed"
         }
     }
-    
+
     var statusColor: Color {
         if !installed {
             return .secondary
@@ -245,7 +245,7 @@ struct AgentConfiguration: Codable, Sendable {
     var proxyURL: String
     var apiKey: String
     var useOAuth: Bool
-    
+
     init(agent: CLIAgent, proxyURL: String, apiKey: String) {
         self.agent = agent
         self.proxyURL = proxyURL
@@ -267,7 +267,7 @@ struct RawConfigOutput: Sendable {
     let filename: String?
     let targetPath: String?
     let instructions: String
-    
+
     enum ConfigFormat: String, Sendable {
         case shellExport = "shell"
         case toml = "toml"
@@ -290,7 +290,7 @@ struct AgentConfigResult: Sendable {
     var modelsConfigured: Int
     var error: String?
     var backupPath: String?
-    
+
     static func success(
         type: AgentConfigType,
         mode: ConfigurationMode,
@@ -316,7 +316,7 @@ struct AgentConfigResult: Sendable {
             backupPath: backupPath
         )
     }
-    
+
     static func failure(error: String) -> AgentConfigResult {
         AgentConfigResult(
             success: false,
@@ -340,7 +340,7 @@ enum ShellType: String, CaseIterable, Sendable {
     case zsh = "zsh"
     case bash = "bash"
     case fish = "fish"
-    
+
     var profilePath: String {
         let home = FileManager.default.homeDirectoryForCurrentUser.path
         switch self {
@@ -349,7 +349,7 @@ enum ShellType: String, CaseIterable, Sendable {
         case .fish: return "\(home)/.config/fish/config.fish"
         }
     }
-    
+
     var exportPrefix: String {
         switch self {
         case .zsh, .bash: return "export"

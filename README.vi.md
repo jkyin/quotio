@@ -1,0 +1,119 @@
+# Quotio
+
+![Quotio Banner](screenshots/dashboard.png)
+
+<p align="center">
+  <img src="https://img.shields.io/badge/platform-macOS-lightgrey.svg?style=flat" alt="Platform macOS" />
+  <img src="https://img.shields.io/badge/language-Swift-orange.svg?style=flat" alt="Language Swift" />
+  <img src="https://img.shields.io/badge/license-MIT-blue.svg?style=flat" alt="License MIT" />
+  <a href="README.md"><img src="https://img.shields.io/badge/lang-English-blue.svg?style=flat" alt="English" /></a>
+</p>
+
+<p align="center">
+  <strong>Trung tâm điều khiển cho các trợ lý lập trình AI trên macOS.</strong>
+</p>
+
+Quotio là ứng dụng macOS để quản lý **CLIProxyAPI** - máy chủ proxy cục bộ cung cấp sức mạnh cho các agent lập trình AI. Quotio giúp bạn quản lý nhiều tài khoản AI, theo dõi hạn mức sử dụng và cấu hình các công cụ CLI tại một nơi.
+
+## ✨ Tính năng
+
+- **🔌 Hỗ trợ Đa nhà cung cấp**: Kết nối tài khoản từ Gemini, Claude, OpenAI, Qwen, Vertex AI, iFlow, Antigravity qua OAuth hoặc API key.
+- **🚀 Cấu hình Agent Một chạm**: Tự động phát hiện và cấu hình các công cụ như Claude Code, OpenCode, Gemini CLI.
+- **📊 Dashboard Thời gian thực**: Giám sát lưu lượng, token sử dụng và tỷ lệ thành công.
+- **📉 Quản lý Hạn mức**: Theo dõi quota từng tài khoản với chiến lược chuyển đổi tự động (Round Robin / Fill First).
+- **🔑 Quản lý API Key**: Tạo và quản lý các khóa API cho proxy.
+- **🖥️ Menu Bar**: Truy cập nhanh trạng thái và điều khiển từ thanh menu.
+- **🔔 Thông báo**: Cảnh báo khi hạn mức thấp, tài khoản đang nghỉ, hoặc lỗi dịch vụ.
+- **🌍 Đa ngôn ngữ**: Hỗ trợ tiếng Anh và tiếng Việt.
+
+## 📸 Hình ảnh
+
+| Bảng điều khiển | Nhà cung cấp |
+|:---:|:---:|
+| ![Bảng điều khiển](screenshots/dashboard.png) | ![Nhà cung cấp](screenshots/providers.png) |
+| **Cài đặt Agent** | **Giám sát Hạn mức** |
+| ![Cài đặt Agent](screenshots/agent_setup.png) | ![Giám sát Hạn mức](screenshots/quota.png) |
+| **Menu Bar** | |
+| ![Menu Bar](screenshots/menu_bar.png) | |
+
+## 🤖 Hệ sinh thái hỗ trợ
+
+### Nhà cung cấp AI
+| Provider | Phương thức xác thực |
+|----------|----------------------|
+| Google Gemini | OAuth |
+| Anthropic Claude | OAuth |
+| OpenAI Codex | OAuth |
+| Qwen Code | OAuth |
+| Vertex AI | Service Account JSON |
+| iFlow | OAuth |
+| Antigravity | OAuth |
+
+### Agent tương thích
+Quotio có thể tự động cấu hình các công cụ sau:
+- Claude Code
+- Codex CLI
+- Gemini CLI
+- Amp CLI
+- OpenCode
+- Factory Droid
+
+## 🚀 Cài đặt
+
+### Yêu cầu
+- macOS 15.0 (Sequoia) trở lên
+- Kết nối internet để xác thực OAuth
+
+### Build từ source
+
+1. **Clone repo:**
+   ```bash
+   git clone https://github.com/user/Quotio.git
+   cd Quotio
+   ```
+
+2. **Mở trong Xcode:**
+   ```bash
+   open Quotio.xcodeproj
+   ```
+
+3. **Build và chạy:**
+   - Chọn scheme "Quotio"
+   - Nhấn `Cmd + R`
+
+> Ứng dụng sẽ tự động tải binary `CLIProxyAPI` trong lần chạy đầu tiên.
+
+## 📖 Hướng dẫn sử dụng
+
+### 1. Khởi động Server
+Mở Quotio và nhấn **Start** trên dashboard để khởi động proxy server.
+
+### 2. Kết nối Tài khoản
+Vào tab **Providers** → Chọn provider → Xác thực qua OAuth hoặc import credentials.
+
+### 3. Cấu hình Agent
+Vào tab **Agents** → Chọn agent đã cài → Nhấn **Configure** → Chọn Automatic hoặc Manual.
+
+### 4. Giám sát
+- **Dashboard**: Tình trạng chung và lưu lượng
+- **Quota**: Chi tiết sử dụng từng tài khoản
+- **Logs**: Nhật ký request/response để debug
+
+## ⚙️ Cài đặt
+
+- **Port**: Đổi cổng proxy
+- **Chiến lược định tuyến**: Round Robin hoặc Fill First
+- **Auto-start**: Tự động khởi động proxy khi mở app
+- **Notifications**: Bật/tắt thông báo
+
+## 🤝 Đóng góp
+
+1. Fork dự án
+2. Tạo nhánh (`git checkout -b feature/tinh-nang-moi`)
+3. Commit (`git commit -m 'Thêm tính năng mới'`)
+4. Push (`git push origin feature/tinh-nang-moi`)
+5. Mở Pull Request
+
+## 📄 Giấy phép
+
+MIT License. Xem file `LICENSE` để biết thêm.
