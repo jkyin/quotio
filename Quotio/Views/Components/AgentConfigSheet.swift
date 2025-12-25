@@ -558,6 +558,13 @@ private struct ModelSlotRow: View {
     let selectedModel: String
     let onModelChange: (String) -> Void
     
+    private var effectiveSelection: String {
+        if selectedModel.isEmpty {
+            return AvailableModel.defaultModels[slot]?.name ?? AvailableModel.allModels.first?.name ?? ""
+        }
+        return selectedModel
+    }
+    
     var body: some View {
         HStack {
             Text(slot.displayName)
@@ -567,16 +574,21 @@ private struct ModelSlotRow: View {
             Spacer(minLength: 12)
             
             Picker("", selection: Binding(
-                get: { selectedModel },
+                get: { effectiveSelection },
                 set: { onModelChange($0) }
             )) {
-                ForEach(AvailableModel.allModels.filter { $0.provider == "anthropic" }) { model in
+                ForEach(AvailableModel.allModels) { model in
                     Text(model.displayName)
                         .tag(model.name)
                 }
             }
             .pickerStyle(.menu)
-            .frame(maxWidth: 200)
+            .frame(maxWidth: 280)
+        }
+        .onAppear {
+            if selectedModel.isEmpty {
+                onModelChange(effectiveSelection)
+            }
         }
     }
 }

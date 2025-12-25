@@ -150,7 +150,7 @@ struct MenuBarView: View {
                 
                 StatItem(
                     icon: "checkmark.circle",
-                    value: String(format: "%.0f%%", viewModel.usageStats?.usage?.successRate ?? 0),
+                    value: String(format: "%.0f%%", viewModel.usageStats?.usage?.successRate ?? 0.0),
                     label: "menubar.success".localized(),
                     color: .orange
                 )

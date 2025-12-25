@@ -42,7 +42,7 @@ enum CLIAgent: String, CaseIterable, Identifiable, Codable, Sendable {
     
     var configType: AgentConfigType {
         switch self {
-        case .claudeCode: return .file
+        case .claudeCode: return .both
         case .codexCLI: return .file
         case .geminiCLI: return .environment
         case .ampCLI: return .both
@@ -182,23 +182,25 @@ struct AvailableModel: Identifiable, Codable, Hashable, Sendable {
     }
     
     static let defaultModels: [ModelSlot: AvailableModel] = [
-        .opus: AvailableModel(id: "opus", name: "claude-sonnet-4-5-thinking", provider: "anthropic", isDefault: true),
-        .sonnet: AvailableModel(id: "sonnet", name: "claude-sonnet-4", provider: "anthropic", isDefault: true),
-        .haiku: AvailableModel(id: "haiku", name: "claude-haiku-3-5", provider: "anthropic", isDefault: true)
+        .opus: AvailableModel(id: "opus", name: "gemini-claude-opus-4-5-thinking", provider: "openai", isDefault: true),
+        .sonnet: AvailableModel(id: "sonnet", name: "gemini-claude-sonnet-4-5", provider: "openai", isDefault: true),
+        .haiku: AvailableModel(id: "haiku", name: "gemini-2.5-flash-lite", provider: "openai", isDefault: true)
     ]
     
     static let allModels: [AvailableModel] = [
-        // Anthropic
-        AvailableModel(id: "claude-sonnet-4-5-thinking", name: "claude-sonnet-4-5-thinking", provider: "anthropic", isDefault: false),
-        AvailableModel(id: "claude-sonnet-4", name: "claude-sonnet-4", provider: "anthropic", isDefault: false),
-        AvailableModel(id: "claude-opus-4", name: "claude-opus-4", provider: "anthropic", isDefault: false),
-        AvailableModel(id: "claude-haiku-3-5", name: "claude-haiku-3-5", provider: "anthropic", isDefault: false),
-        // Gemini via Antigravity
-        AvailableModel(id: "gemini-3-pro-high", name: "gemini-3-pro-high", provider: "antigravity", isDefault: false),
-        AvailableModel(id: "gemini-3-flash", name: "gemini-3-flash", provider: "antigravity", isDefault: false),
-        // GPT models via Codex
+        AvailableModel(id: "gemini-claude-opus-4-5-thinking", name: "gemini-claude-opus-4-5-thinking", provider: "openai", isDefault: false),
+        AvailableModel(id: "gemini-claude-sonnet-4-5", name: "gemini-claude-sonnet-4-5", provider: "openai", isDefault: false),
+        AvailableModel(id: "gemini-claude-sonnet-4-5-thinking", name: "gemini-claude-sonnet-4-5-thinking", provider: "openai", isDefault: false),
+        AvailableModel(id: "gemini-3-pro-preview", name: "gemini-3-pro-preview", provider: "openai", isDefault: false),
+        AvailableModel(id: "gemini-3-pro-image-preview", name: "gemini-3-pro-image-preview", provider: "openai", isDefault: false),
+        AvailableModel(id: "gemini-3-flash-preview", name: "gemini-3-flash-preview", provider: "openai", isDefault: false),
+        AvailableModel(id: "gemini-2.5-flash", name: "gemini-2.5-flash", provider: "openai", isDefault: false),
+        AvailableModel(id: "gemini-2.5-flash-lite", name: "gemini-2.5-flash-lite", provider: "openai", isDefault: false),
+        AvailableModel(id: "gpt-5.2", name: "gpt-5.2", provider: "openai", isDefault: false),
+        AvailableModel(id: "gpt-5.2-codex", name: "gpt-5.2-codex", provider: "openai", isDefault: false),
+        AvailableModel(id: "gpt-5.1-codex", name: "gpt-5.1-codex", provider: "openai", isDefault: false),
+        AvailableModel(id: "gpt-5.1-codex-max", name: "gpt-5.1-codex-max", provider: "openai", isDefault: false),
         AvailableModel(id: "gpt-5-codex", name: "gpt-5-codex", provider: "openai", isDefault: false),
-        AvailableModel(id: "gpt-5", name: "gpt-5", provider: "openai", isDefault: false),
     ]
 }
 

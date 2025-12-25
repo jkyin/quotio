@@ -41,9 +41,9 @@ actor AgentConfigurationService {
         let configDir = "\(home)/.claude"
         let configPath = "\(configDir)/settings.json"
         
-        let opusModel = config.modelSlots[.opus] ?? "claude-sonnet-4-5-thinking"
-        let sonnetModel = config.modelSlots[.sonnet] ?? "claude-sonnet-4"
-        let haikuModel = config.modelSlots[.haiku] ?? "claude-haiku-3-5"
+        let opusModel = config.modelSlots[.opus] ?? "gemini-claude-opus-4-5-thinking"
+        let sonnetModel = config.modelSlots[.sonnet] ?? "gemini-claude-sonnet-4-5"
+        let haikuModel = config.modelSlots[.haiku] ?? "gemini-2.5-flash-lite"
         let baseURL = config.proxyURL.replacingOccurrences(of: "/v1", with: "")
         
         let envConfig: [String: String] = [
@@ -56,6 +56,15 @@ actor AgentConfigurationService {
         
         let settingsJSON: [String: Any] = ["env": envConfig]
         
+        let shellExports = """
+        # CLIProxyAPI Configuration for Claude Code
+        export ANTHROPIC_BASE_URL="\(baseURL)"
+        export ANTHROPIC_AUTH_TOKEN="\(config.apiKey)"
+        export ANTHROPIC_DEFAULT_OPUS_MODEL="\(opusModel)"
+        export ANTHROPIC_DEFAULT_SONNET_MODEL="\(sonnetModel)"
+        export ANTHROPIC_DEFAULT_HAIKU_MODEL="\(haikuModel)"
+        """
+        
         do {
             let jsonData = try JSONSerialization.data(withJSONObject: settingsJSON, options: [.prettyPrinted, .sortedKeys, .withoutEscapingSlashes])
             let jsonString = String(data: jsonData, encoding: .utf8) ?? "{}"
@@ -66,7 +75,14 @@ actor AgentConfigurationService {
                     content: jsonString,
                     filename: "settings.json",
                     targetPath: configPath,
-                    instructions: "Save this as ~/.claude/settings.json"
+                    instructions: "Option 1: Save as ~/.claude/settings.json"
+                ),
+                RawConfigOutput(
+                    format: .shellExport,
+                    content: shellExports,
+                    filename: nil,
+                    targetPath: "~/.zshrc or ~/.bashrc",
+                    instructions: "Option 2: Add to your shell profile"
                 )
             ]
             
@@ -82,21 +98,23 @@ actor AgentConfigurationService {
                 try jsonData.write(to: URL(fileURLWithPath: configPath))
                 
                 return .success(
-                    type: .file,
+                    type: .both,
                     mode: mode,
                     configPath: configPath,
+                    shellConfig: shellExports,
                     rawConfigs: rawConfigs,
-                    instructions: "Configuration saved to ~/.claude/settings.json. Claude Code is now configured to use CLIProxyAPI.",
+                    instructions: "Configuration saved to ~/.claude/settings.json. Alternatively, add the shell exports to your ~/.zshrc",
                     modelsConfigured: 3,
                     backupPath: backupPath
                 )
             } else {
                 return .success(
-                    type: .file,
+                    type: .both,
                     mode: mode,
                     configPath: configPath,
+                    shellConfig: shellExports,
                     rawConfigs: rawConfigs,
-                    instructions: "Copy the configuration below and save it as ~/.claude/settings.json:",
+                    instructions: "Choose one option: save settings.json OR add shell exports to your profile:",
                     modelsConfigured: 3
                 )
             }
@@ -316,8 +334,32 @@ actor AgentConfigurationService {
         let baseURL = config.proxyURL.replacingOccurrences(of: "/v1", with: "")
         
         let quotioModels: [String: [String: Any]] = [
-            "gemini-2.5-computer-use-preview-10-2025": [
-                "name": "Gemini 2.5 Computer Use Preview 10 2025",
+            "gemini-claude-opus-4-5-thinking": [
+                "name": "Claude Opus 4.5 Thinking",
+                "limit": ["context": 200000, "output": 64000],
+                "reasoning": true,
+                "options": ["thinking": ["type": "enabled", "budgetTokens": 10000]]
+            ],
+            "gemini-claude-sonnet-4-5": [
+                "name": "Claude Sonnet 4.5",
+                "limit": ["context": 200000, "output": 64000]
+            ],
+            "gemini-claude-sonnet-4-5-thinking": [
+                "name": "Claude Sonnet 4.5 Thinking",
+                "limit": ["context": 200000, "output": 64000],
+                "reasoning": true,
+                "options": ["thinking": ["type": "enabled", "budgetTokens": 10000]]
+            ],
+            "gemini-3-pro-preview": [
+                "name": "Gemini 3 Pro Preview",
+                "limit": ["context": 1048576, "output": 65536]
+            ],
+            "gemini-3-pro-image-preview": [
+                "name": "Gemini 3 Pro Image Preview",
+                "limit": ["context": 1048576, "output": 65536]
+            ],
+            "gemini-3-flash-preview": [
+                "name": "Gemini 3 Flash Preview",
                 "limit": ["context": 1048576, "output": 65536]
             ],
             "gemini-2.5-flash": [
@@ -328,90 +370,66 @@ actor AgentConfigurationService {
                 "name": "Gemini 2.5 Flash Lite",
                 "limit": ["context": 1048576, "output": 65536]
             ],
-            "gemini-3-flash-preview": [
-                "name": "Gemini 3 Flash Preview",
+            "gemini-2.5-computer-use-preview-10-2025": [
+                "name": "Gemini 2.5 Computer Use Preview",
                 "limit": ["context": 1048576, "output": 65536]
-            ],
-            "gemini-3-pro-image-preview": [
-                "name": "Gemini 3 Pro Image Preview",
-                "limit": ["context": 1048576, "output": 65536]
-            ],
-            "gemini-3-pro-preview": [
-                "name": "Gemini 3 Pro Preview",
-                "limit": ["context": 1048576, "output": 65536]
-            ],
-            "gemini-claude-opus-4-5-thinking": [
-                "name": "Gemini Claude Opus 4.5 Thinking",
-                "limit": ["context": 200000, "output": 64000],
-                "reasoning": true,
-                "options": ["thinking": ["type": "enabled", "budgetTokens": 8192]]
-            ],
-            "gemini-claude-sonnet-4-5": [
-                "name": "Gemini Claude Sonnet 4.5",
-                "limit": ["context": 200000, "output": 64000]
-            ],
-            "gemini-claude-sonnet-4-5-thinking": [
-                "name": "Gemini Claude Sonnet 4.5 Thinking",
-                "limit": ["context": 200000, "output": 64000],
-                "reasoning": true,
-                "options": ["thinking": ["type": "enabled", "budgetTokens": 8192]]
-            ],
-            "gpt-5": [
-                "name": "Gpt 5",
-                "limit": ["context": 400000, "output": 32768],
-                "reasoning": true,
-                "options": ["reasoning": ["effort": "medium"]]
-            ],
-            "gpt-5-codex": [
-                "name": "Gpt 5 Codex",
-                "limit": ["context": 400000, "output": 32768],
-                "reasoning": true,
-                "options": ["reasoning": ["effort": "medium"]]
-            ],
-            "gpt-5-codex-mini": [
-                "name": "Gpt 5 Codex Mini",
-                "limit": ["context": 400000, "output": 32768],
-                "reasoning": true,
-                "options": ["reasoning": ["effort": "medium"]]
-            ],
-            "gpt-5.1": [
-                "name": "Gpt 5.1",
-                "limit": ["context": 400000, "output": 32768],
-                "reasoning": true,
-                "options": ["reasoning": ["effort": "medium"]]
-            ],
-            "gpt-5.1-codex": [
-                "name": "Gpt 5.1 Codex",
-                "limit": ["context": 400000, "output": 32768],
-                "reasoning": true,
-                "options": ["reasoning": ["effort": "medium"]]
-            ],
-            "gpt-5.1-codex-max": [
-                "name": "Gpt 5.1 Codex Max",
-                "limit": ["context": 400000, "output": 32768],
-                "reasoning": true,
-                "options": ["reasoning": ["effort": "medium"]]
-            ],
-            "gpt-5.1-codex-mini": [
-                "name": "Gpt 5.1 Codex Mini",
-                "limit": ["context": 400000, "output": 32768],
-                "reasoning": true,
-                "options": ["reasoning": ["effort": "medium"]]
             ],
             "gpt-5.2": [
-                "name": "Gpt 5.2",
+                "name": "GPT 5.2",
                 "limit": ["context": 400000, "output": 32768],
                 "reasoning": true,
                 "options": ["reasoning": ["effort": "medium"]]
             ],
             "gpt-5.2-codex": [
-                "name": "Gpt 5.2 Codex",
+                "name": "GPT 5.2 Codex",
                 "limit": ["context": 400000, "output": 32768],
                 "reasoning": true,
                 "options": ["reasoning": ["effort": "medium"]]
             ],
+            "gpt-5.1": [
+                "name": "GPT 5.1",
+                "limit": ["context": 400000, "output": 32768],
+                "reasoning": true,
+                "options": ["reasoning": ["effort": "medium"]]
+            ],
+            "gpt-5.1-codex": [
+                "name": "GPT 5.1 Codex",
+                "limit": ["context": 400000, "output": 32768],
+                "reasoning": true,
+                "options": ["reasoning": ["effort": "medium"]]
+            ],
+            "gpt-5.1-codex-max": [
+                "name": "GPT 5.1 Codex Max",
+                "limit": ["context": 400000, "output": 32768],
+                "reasoning": true,
+                "options": ["reasoning": ["effort": "high"]]
+            ],
+            "gpt-5.1-codex-mini": [
+                "name": "GPT 5.1 Codex Mini",
+                "limit": ["context": 400000, "output": 32768],
+                "reasoning": true,
+                "options": ["reasoning": ["effort": "low"]]
+            ],
+            "gpt-5": [
+                "name": "GPT 5",
+                "limit": ["context": 400000, "output": 32768],
+                "reasoning": true,
+                "options": ["reasoning": ["effort": "medium"]]
+            ],
+            "gpt-5-codex": [
+                "name": "GPT 5 Codex",
+                "limit": ["context": 400000, "output": 32768],
+                "reasoning": true,
+                "options": ["reasoning": ["effort": "medium"]]
+            ],
+            "gpt-5-codex-mini": [
+                "name": "GPT 5 Codex Mini",
+                "limit": ["context": 400000, "output": 32768],
+                "reasoning": true,
+                "options": ["reasoning": ["effort": "low"]]
+            ],
             "gpt-oss-120b-medium": [
-                "name": "Gpt Oss 120b Medium",
+                "name": "GPT OSS 120B Medium",
                 "limit": ["context": 128000, "output": 16384]
             ]
         ]
@@ -496,28 +514,28 @@ actor AgentConfigurationService {
         let configDir = "\(home)/.factory"
         let configPath = "\(configDir)/config.json"
         
+        let openaiBaseURL = "\(config.proxyURL.replacingOccurrences(of: "/v1", with: ""))/v1"
+        
         let customModels: [[String: Any]] = [
-            [
-                "model": "claude-sonnet-4",
-                "model_display_name": "Claude Sonnet 4",
-                "base_url": config.proxyURL.replacingOccurrences(of: "/v1", with: ""),
-                "api_key": config.apiKey,
-                "provider": "anthropic"
-            ],
-            [
-                "model": "gemini-2.5-pro",
-                "model_display_name": "Gemini 2.5 Pro",
-                "base_url": config.proxyURL,
-                "api_key": config.apiKey,
-                "provider": "openai"
-            ],
-            [
-                "model": "gpt-5-codex",
-                "model_display_name": "GPT-5 Codex",
-                "base_url": config.proxyURL,
-                "api_key": config.apiKey,
-                "provider": "openai"
-            ]
+            ["model": "gemini-claude-opus-4-5-thinking", "model_display_name": "gemini-claude-opus-4-5-thinking", "base_url": openaiBaseURL, "api_key": config.apiKey, "provider": "openai"],
+            ["model": "gemini-claude-sonnet-4-5", "model_display_name": "gemini-claude-sonnet-4-5", "base_url": openaiBaseURL, "api_key": config.apiKey, "provider": "openai"],
+            ["model": "gemini-claude-sonnet-4-5-thinking", "model_display_name": "gemini-claude-sonnet-4-5-thinking", "base_url": openaiBaseURL, "api_key": config.apiKey, "provider": "openai"],
+            ["model": "gpt-5.2", "model_display_name": "gpt-5.2", "base_url": openaiBaseURL, "api_key": config.apiKey, "provider": "openai"],
+            ["model": "gpt-5.2-codex", "model_display_name": "gpt-5.2-codex", "base_url": openaiBaseURL, "api_key": config.apiKey, "provider": "openai"],
+            ["model": "gpt-5.1", "model_display_name": "gpt-5.1", "base_url": openaiBaseURL, "api_key": config.apiKey, "provider": "openai"],
+            ["model": "gpt-5.1-codex", "model_display_name": "gpt-5.1-codex", "base_url": openaiBaseURL, "api_key": config.apiKey, "provider": "openai"],
+            ["model": "gpt-5.1-codex-max", "model_display_name": "gpt-5.1-codex-max", "base_url": openaiBaseURL, "api_key": config.apiKey, "provider": "openai"],
+            ["model": "gpt-5.1-codex-mini", "model_display_name": "gpt-5.1-codex-mini", "base_url": openaiBaseURL, "api_key": config.apiKey, "provider": "openai"],
+            ["model": "gpt-5", "model_display_name": "gpt-5", "base_url": openaiBaseURL, "api_key": config.apiKey, "provider": "openai"],
+            ["model": "gpt-5-codex", "model_display_name": "gpt-5-codex", "base_url": openaiBaseURL, "api_key": config.apiKey, "provider": "openai"],
+            ["model": "gpt-5-codex-mini", "model_display_name": "gpt-5-codex-mini", "base_url": openaiBaseURL, "api_key": config.apiKey, "provider": "openai"],
+            ["model": "gpt-oss-120b-medium", "model_display_name": "gpt-oss-120b-medium", "base_url": openaiBaseURL, "api_key": config.apiKey, "provider": "openai"],
+            ["model": "gemini-3-pro-preview", "model_display_name": "gemini-3-pro-preview", "base_url": openaiBaseURL, "api_key": config.apiKey, "provider": "openai"],
+            ["model": "gemini-3-pro-image-preview", "model_display_name": "gemini-3-pro-image-preview", "base_url": openaiBaseURL, "api_key": config.apiKey, "provider": "openai"],
+            ["model": "gemini-3-flash-preview", "model_display_name": "gemini-3-flash-preview", "base_url": openaiBaseURL, "api_key": config.apiKey, "provider": "openai"],
+            ["model": "gemini-2.5-flash", "model_display_name": "gemini-2.5-flash", "base_url": openaiBaseURL, "api_key": config.apiKey, "provider": "openai"],
+            ["model": "gemini-2.5-flash-lite", "model_display_name": "gemini-2.5-flash-lite", "base_url": openaiBaseURL, "api_key": config.apiKey, "provider": "openai"],
+            ["model": "gemini-2.5-computer-use-preview-10-2025", "model_display_name": "gemini-2.5-computer-use-preview-10-2025", "base_url": openaiBaseURL, "api_key": config.apiKey, "provider": "openai"]
         ]
         
         let factoryConfig: [String: Any] = ["custom_models": customModels]
