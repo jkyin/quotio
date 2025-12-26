@@ -4,9 +4,29 @@
 //
 
 import SwiftUI
+import UniformTypeIdentifiers
 
 struct DashboardScreen: View {
     @Environment(QuotaViewModel.self) private var viewModel
+    @AppStorage("hideGettingStarted") private var hideGettingStarted: Bool = false
+    
+    @State private var selectedProvider: AIProvider?
+    @State private var projectId: String = ""
+    @State private var isImporterPresented = false
+    @State private var selectedAgentForConfig: CLIAgent?
+    @State private var sheetPresentationID = UUID()
+    
+    private var showGettingStarted: Bool {
+        guard !hideGettingStarted else { return false }
+        return !isSetupComplete
+    }
+    
+    private var isSetupComplete: Bool {
+        viewModel.proxyManager.isBinaryInstalled &&
+        viewModel.proxyManager.proxyStatus.running &&
+        !viewModel.authFiles.isEmpty &&
+        viewModel.agentSetupViewModel.agentStatuses.contains(where: { $0.configured })
+    }
     
     var body: some View {
         ScrollView {
@@ -16,6 +36,10 @@ struct DashboardScreen: View {
                 } else if !viewModel.proxyManager.proxyStatus.running {
                     startProxySection
                 } else {
+                    if showGettingStarted {
+                        gettingStartedSection
+                    }
+                    
                     kpiSection
                     providerSection
                     endpointSection
@@ -33,6 +57,38 @@ struct DashboardScreen: View {
                 }
                 .disabled(!viewModel.proxyManager.proxyStatus.running)
             }
+        }
+        .sheet(item: $selectedProvider) { provider in
+            OAuthSheet(provider: provider, projectId: $projectId) {
+                selectedProvider = nil
+                projectId = ""
+                viewModel.oauthState = nil
+                Task { await viewModel.refreshData() }
+            }
+            .environment(viewModel)
+        }
+        .sheet(item: $selectedAgentForConfig) { (agent: CLIAgent) in
+            AgentConfigSheet(viewModel: viewModel.agentSetupViewModel, agent: agent)
+                .id(sheetPresentationID)
+                .onDisappear {
+                    viewModel.agentSetupViewModel.dismissConfiguration()
+                    Task { await viewModel.agentSetupViewModel.refreshAgentStatuses() }
+                }
+        }
+        .fileImporter(
+            isPresented: $isImporterPresented,
+            allowedContentTypes: [.json],
+            allowsMultipleSelection: false
+        ) { result in
+            if case .success(let urls) = result, let url = urls.first {
+                Task {
+                    await viewModel.importVertexServiceAccount(url: url)
+                    await viewModel.refreshData()
+                }
+            }
+        }
+        .task {
+            await viewModel.agentSetupViewModel.refreshAgentStatuses()
         }
     }
     
@@ -87,6 +143,107 @@ struct DashboardScreen: View {
         .frame(maxWidth: .infinity, minHeight: 300)
     }
     
+    // MARK: - Getting Started Section
+    
+    private var gettingStartedSection: some View {
+        GroupBox {
+            VStack(alignment: .leading, spacing: 16) {
+                ForEach(gettingStartedSteps) { step in
+                    GettingStartedStepRow(
+                        step: step,
+                        onAction: { handleStepAction(step) }
+                    )
+                    
+                    if step.id != gettingStartedSteps.last?.id {
+                        Divider()
+                    }
+                }
+            }
+        } label: {
+            HStack {
+                Label("dashboard.gettingStarted".localized(), systemImage: "sparkles")
+                
+                Spacer()
+                
+                Button {
+                    withAnimation { hideGettingStarted = true }
+                } label: {
+                    Image(systemName: "xmark")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+                .buttonStyle(.plain)
+                .help("action.dismiss".localized())
+            }
+        }
+    }
+    
+    private var gettingStartedSteps: [GettingStartedStep] {
+        [
+            GettingStartedStep(
+                id: "provider",
+                icon: "person.2.badge.key",
+                title: "onboarding.addProvider".localized(),
+                description: "onboarding.addProviderDesc".localized(),
+                isCompleted: !viewModel.authFiles.isEmpty,
+                actionLabel: viewModel.authFiles.isEmpty ? "providers.addProvider".localized() : nil
+            ),
+            GettingStartedStep(
+                id: "agent",
+                icon: "terminal",
+                title: "onboarding.configureAgent".localized(),
+                description: "onboarding.configureAgentDesc".localized(),
+                isCompleted: viewModel.agentSetupViewModel.agentStatuses.contains(where: { $0.configured }),
+                actionLabel: viewModel.agentSetupViewModel.agentStatuses.contains(where: { $0.configured }) ? nil : "agents.configure".localized()
+            )
+        ]
+    }
+    
+    private func handleStepAction(_ step: GettingStartedStep) {
+        switch step.id {
+        case "provider":
+            showProviderPicker()
+        case "agent":
+            showAgentPicker()
+        default:
+            break
+        }
+    }
+    
+    private func showProviderPicker() {
+        let alert = NSAlert()
+        alert.messageText = "providers.addProvider".localized()
+        alert.informativeText = "onboarding.addProviderDesc".localized()
+        
+        for provider in AIProvider.allCases {
+            alert.addButton(withTitle: provider.displayName)
+        }
+        alert.addButton(withTitle: "action.cancel".localized())
+        
+        let response = alert.runModal()
+        let index = response.rawValue - 1000
+        
+        if index >= 0 && index < AIProvider.allCases.count {
+            let provider = AIProvider.allCases[index]
+            if provider == .vertex {
+                isImporterPresented = true
+            } else {
+                viewModel.oauthState = nil
+                selectedProvider = provider
+            }
+        }
+    }
+    
+    private func showAgentPicker() {
+        let installedAgents = viewModel.agentSetupViewModel.agentStatuses.filter { $0.installed }
+        guard let firstAgent = installedAgents.first else { return }
+        
+        let apiKey = viewModel.apiKeys.first ?? viewModel.proxyManager.managementKey
+        viewModel.agentSetupViewModel.startConfiguration(for: firstAgent.agent, apiKey: apiKey)
+        sheetPresentationID = UUID()
+        selectedAgentForConfig = firstAgent.agent
+    }
+    
     // MARK: - KPI Section
     
     private var kpiSection: some View {
@@ -137,7 +294,12 @@ struct DashboardScreen: View {
                     
                     ForEach(viewModel.disconnectedProviders) { provider in
                         Button {
-                            Task { await viewModel.startOAuth(for: provider) }
+                            if provider == .vertex {
+                                isImporterPresented = true
+                            } else {
+                                viewModel.oauthState = nil
+                                selectedProvider = provider
+                            }
                         } label: {
                             Label(provider.displayName, systemImage: "plus.circle")
                                 .font(.caption)
@@ -173,6 +335,70 @@ struct DashboardScreen: View {
         } label: {
             Label("dashboard.apiEndpoint".localized(), systemImage: "link")
         }
+    }
+}
+
+// MARK: - Getting Started Step
+
+struct GettingStartedStep: Identifiable {
+    let id: String
+    let icon: String
+    let title: String
+    let description: String
+    let isCompleted: Bool
+    let actionLabel: String?
+}
+
+struct GettingStartedStepRow: View {
+    let step: GettingStartedStep
+    let onAction: () -> Void
+    
+    var body: some View {
+        HStack(spacing: 16) {
+            ZStack {
+                Circle()
+                    .fill(step.isCompleted ? Color.green : Color.accentColor.opacity(0.15))
+                    .frame(width: 40, height: 40)
+                
+                if step.isCompleted {
+                    Image(systemName: "checkmark")
+                        .font(.system(size: 16, weight: .bold))
+                        .foregroundStyle(.white)
+                } else {
+                    Image(systemName: step.icon)
+                        .font(.system(size: 16))
+                        .foregroundStyle(Color.accentColor)
+                }
+            }
+            
+            VStack(alignment: .leading, spacing: 4) {
+                HStack {
+                    Text(step.title)
+                        .font(.headline)
+                    
+                    if step.isCompleted {
+                        Image(systemName: "checkmark.circle.fill")
+                            .foregroundStyle(.green)
+                            .font(.caption)
+                    }
+                }
+                
+                Text(step.description)
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+            }
+            
+            Spacer()
+            
+            if let actionLabel = step.actionLabel {
+                Button(actionLabel) {
+                    onAction()
+                }
+                .buttonStyle(.borderedProminent)
+                .controlSize(.small)
+            }
+        }
+        .padding(.vertical, 8)
     }
 }
 

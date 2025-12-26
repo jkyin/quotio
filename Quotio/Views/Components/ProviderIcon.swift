@@ -10,19 +10,10 @@ struct ProviderIcon: View {
     var size: CGFloat = 24
     
     var body: some View {
-        Group {
-            if let nsImage = NSImage(named: provider.logoAssetName) {
-                Image(nsImage: nsImage)
-                    .resizable()
-                    .aspectRatio(contentMode: .fit)
-            } else {
-                Image(systemName: provider.iconName)
-                    .resizable()
-                    .aspectRatio(contentMode: .fit)
-                    .foregroundStyle(provider.color)
-            }
-        }
-        .frame(width: size, height: size)
+        Image(provider.logoAssetName, bundle: .main)
+            .resizable()
+            .aspectRatio(contentMode: .fit)
+            .frame(width: size, height: size)
     }
 }
 

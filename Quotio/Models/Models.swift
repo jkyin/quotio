@@ -9,13 +9,15 @@ import SwiftUI
 // MARK: - Provider Types
 
 enum AIProvider: String, CaseIterable, Codable, Identifiable {
-    case gemini = "gemini"
+    case gemini = "gemini-cli"
     case claude = "claude"
     case codex = "codex"
     case qwen = "qwen"
     case iflow = "iflow"
     case antigravity = "antigravity"
     case vertex = "vertex"
+    case kiro = "kiro"
+    case copilot = "github-copilot"
     
     var id: String { rawValue }
     
@@ -28,6 +30,8 @@ enum AIProvider: String, CaseIterable, Codable, Identifiable {
         case .iflow: return "iFlow"
         case .antigravity: return "Antigravity"
         case .vertex: return "Vertex AI"
+        case .kiro: return "Kiro (CodeWhisperer)"
+        case .copilot: return "GitHub Copilot"
         }
     }
     
@@ -40,6 +44,8 @@ enum AIProvider: String, CaseIterable, Codable, Identifiable {
         case .iflow: return "arrow.triangle.branch"
         case .antigravity: return "wand.and.stars"
         case .vertex: return "cube"
+        case .kiro: return "cloud.fill"
+        case .copilot: return "chevron.left.forwardslash.chevron.right"
         }
     }
     
@@ -53,6 +59,8 @@ enum AIProvider: String, CaseIterable, Codable, Identifiable {
         case .iflow: return "iflow"
         case .antigravity: return "antigravity"
         case .vertex: return "vertex"
+        case .kiro: return "kiro"
+        case .copilot: return "copilot"
         }
     }
     
@@ -65,6 +73,8 @@ enum AIProvider: String, CaseIterable, Codable, Identifiable {
         case .iflow: return Color(hex: "06B6D4") ?? .cyan
         case .antigravity: return Color(hex: "EC4899") ?? .pink
         case .vertex: return Color(hex: "EA4335") ?? .red
+        case .kiro: return Color(hex: "9046FF") ?? .purple
+        case .copilot: return Color(hex: "238636") ?? .green
         }
     }
     
@@ -77,6 +87,8 @@ enum AIProvider: String, CaseIterable, Codable, Identifiable {
         case .iflow: return "/iflow-auth-url"
         case .antigravity: return "/antigravity-auth-url"
         case .vertex: return ""
+        case .kiro: return ""  // Uses CLI-based auth like Copilot
+        case .copilot: return ""
         }
     }
 }
@@ -124,7 +136,28 @@ struct AuthFile: Codable, Identifiable, Hashable, Sendable {
     }
     
     var providerType: AIProvider? {
-        AIProvider(rawValue: provider)
+        // Handle "copilot" alias for "github-copilot"
+        if provider == "copilot" {
+            return .copilot
+        }
+        return AIProvider(rawValue: provider)
+    }
+    
+    var quotaLookupKey: String {
+        if let email = email, !email.isEmpty {
+            return email
+        }
+        if let account = account, !account.isEmpty {
+            return account
+        }
+        var key = name
+        if key.hasPrefix("github-copilot-") {
+            key = String(key.dropFirst("github-copilot-".count))
+        }
+        if key.hasSuffix(".json") {
+            key = String(key.dropLast(".json".count))
+        }
+        return key
     }
     
     var isReady: Bool {

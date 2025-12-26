@@ -419,7 +419,7 @@ private struct QuotaAccountRow: View {
 private struct QuotaModelBadge: View {
     let model: ModelQuota
     
-    private var remainingPercent: Int {
+    private var remainingPercent: Double {
         model.percentage
     }
     
@@ -443,15 +443,15 @@ private struct QuotaModelBadge: View {
                             .fill(.quaternary)
                         Capsule()
                             .fill(tintColor.gradient)
-                            .frame(width: proxy.size.width * min(1, Double(remainingPercent) / 100))
+                            .frame(width: proxy.size.width * min(1, remainingPercent / 100))
                     }
                 }
                 .frame(height: 4)
                 
-                Text("\(remainingPercent)%")
+                Text(model.formattedPercentage)
                     .font(.system(size: 9, weight: .semibold))
                     .foregroundStyle(tintColor)
-                    .frame(width: 28, alignment: .trailing)
+                    .frame(width: 36, alignment: .trailing)
             }
         }
         .frame(maxWidth: .infinity)

@@ -102,7 +102,7 @@ struct QuotaCard: View {
         VStack(spacing: 12) {
             ForEach(Array(aggregatedModels.keys.sorted()), id: \.self) { modelName in
                 if let data = aggregatedModels[modelName] {
-                    let displayName = ModelQuota(name: modelName, percentage: 0, resetTime: "").displayName
+                    let displayName = ModelQuota(name: modelName, percentage: 0.0, resetTime: "").displayName
                     QuotaSection(
                         title: displayName,
                         remainingPercent: data.remainingPercent,
@@ -194,7 +194,7 @@ struct QuotaCard: View {
         DisclosureGroup {
             VStack(spacing: 4) {
                 ForEach(accounts) { account in
-                    AccountRow(account: account, quotaData: quotaData?[account.email ?? ""])
+                    AccountRow(account: account, quotaData: quotaData?[account.quotaLookupKey])
                 }
             }
         } label: {
@@ -338,9 +338,9 @@ private struct AccountRow: View {
     let mockQuota: [String: ProviderQuotaData] = [
         "[email protected]": ProviderQuotaData(
             models: [
-                ModelQuota(name: "gemini-3-pro-high", percentage: 65, resetTime: "2025-12-25T00:00:00Z"),
-                ModelQuota(name: "gemini-3-flash", percentage: 80, resetTime: "2025-12-25T00:00:00Z"),
-                ModelQuota(name: "claude-sonnet-4-5-thinking", percentage: 45, resetTime: "2025-12-25T00:00:00Z")
+                ModelQuota(name: "gemini-3-pro-high", percentage: 65.0, resetTime: "2025-12-25T00:00:00Z"),
+                ModelQuota(name: "gemini-3-flash", percentage: 80.0, resetTime: "2025-12-25T00:00:00Z"),
+                ModelQuota(name: "claude-sonnet-4-5-thinking", percentage: 45.0, resetTime: "2025-12-25T00:00:00Z")
             ]
         )
     ]

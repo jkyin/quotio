@@ -190,12 +190,12 @@ struct CodexQuotaData: Codable, Sendable {
         }
     }
     
-    var sessionRemainingPercent: Int {
-        100 - sessionUsedPercent
+    var sessionRemainingPercent: Double {
+        Double(100 - sessionUsedPercent)
     }
     
-    var weeklyRemainingPercent: Int {
-        100 - weeklyUsedPercent
+    var weeklyRemainingPercent: Double {
+        Double(100 - weeklyUsedPercent)
     }
     
     func toProviderQuotaData() -> ProviderQuotaData {

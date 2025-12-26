@@ -10,6 +10,7 @@ import AppKit
 @Observable
 final class CLIProxyManager {
     private var process: Process?
+    private var authProcess: Process?  // Track auth process for cleanup
     private(set) var proxyStatus = ProxyStatus()
     private(set) var isStarting = false
     private(set) var isDownloading = false
@@ -30,7 +31,7 @@ final class CLIProxyManager {
         }
     }
     
-    private static let githubRepo = "router-for-me/CLIProxyAPI"
+    private static let githubRepo = "router-for-me/CLIProxyAPIPlus"
     private static let binaryName = "CLIProxyAPI"
     
     var baseURL: String {
@@ -196,7 +197,7 @@ final class CLIProxyManager {
     }
     
     private func fetchLatestRelease() async throws -> ReleaseInfo {
-        let urlString = "https://api.github.com/repos/router-for-me/CLIProxyAPI/releases/latest"
+        let urlString = "https://api.github.com/repos/router-for-me/CLIProxyAPIPlus/releases/latest"
         guard let url = URL(string: urlString) else {
             throw ProxyError.networkError("Invalid URL")
         }
@@ -309,12 +310,19 @@ final class CLIProxyManager {
         }
         
         try FileManager.default.setAttributes([.posixPermissions: 0o755], ofItemAtPath: binaryPath)
+        
+        // Ad-hoc sign the binary to allow execution on macOS
+        let signProcess = Process()
+        signProcess.executableURL = URL(fileURLWithPath: "/usr/bin/codesign")
+        signProcess.arguments = ["-f", "-s", "-", binaryPath]
+        try? signProcess.run()
+        signProcess.waitUntilExit()
     }
     
     private func findBinaryInDirectory(_ directory: URL) throws -> URL? {
         let contents = try FileManager.default.contentsOfDirectory(at: directory, includingPropertiesForKeys: [.isExecutableKey, .isRegularFileKey])
         
-        let binaryNames = ["CLIProxyAPI", "cli-proxy-api", "claude-code-proxy", "proxy"]
+        let binaryNames = ["CLIProxyAPI", "cli-proxy-api", "cli-proxy-api-plus", "claude-code-proxy", "proxy"]
         
         for name in binaryNames {
             if let found = contents.first(where: { $0.lastPathComponent.lowercased() == name.lowercased() }) {
@@ -404,10 +412,17 @@ final class CLIProxyManager {
     }
     
     func stop() {
+        terminateAuthProcess()
         process?.terminate()
         process?.waitUntilExit()
         process = nil
         proxyStatus.running = false
+    }
+    
+    func terminateAuthProcess() {
+        guard let authProcess = authProcess, authProcess.isRunning else { return }
+        authProcess.terminate()
+        self.authProcess = nil
     }
     
     func toggle() async throws {
@@ -451,5 +466,178 @@ enum ProxyError: LocalizedError {
         case .downloadFailed:
             return "Failed to download binary."
         }
+    }
+}
+
+// MARK: - CLI Auth Commands
+
+enum AuthCommand: Equatable {
+    case copilotLogin
+    case kiroGoogleLogin
+    case kiroAWSLogin
+    case kiroAWSAuthCode
+    case kiroImport
+    
+    var arguments: [String] {
+        switch self {
+        case .copilotLogin:
+            return ["-github-copilot-login"]
+        case .kiroGoogleLogin:
+            return ["-kiro-google-login"]
+        case .kiroAWSLogin:
+            return ["-kiro-aws-login"]
+        case .kiroAWSAuthCode:
+            return ["-kiro-aws-authcode"]
+        case .kiroImport:
+            return ["-kiro-import"]
+        }
+    }
+    
+    var displayName: String {
+        switch self {
+        case .copilotLogin:
+            return "GitHub Device Code"
+        case .kiroGoogleLogin:
+            return "Google OAuth"
+        case .kiroAWSLogin:
+            return "AWS Builder ID (Device Code)"
+        case .kiroAWSAuthCode:
+            return "AWS Builder ID (Browser)"
+        case .kiroImport:
+            return "Import from Kiro IDE"
+        }
+    }
+}
+
+struct AuthCommandResult {
+    let success: Bool
+    let message: String
+    let deviceCode: String?
+}
+
+extension CLIProxyManager {
+    
+    func runAuthCommand(_ command: AuthCommand) async -> AuthCommandResult {
+        terminateAuthProcess()
+        
+        guard isBinaryInstalled else {
+            return AuthCommandResult(success: false, message: "CLIProxyAPI binary not found", deviceCode: nil)
+        }
+        
+        return await withCheckedContinuation { continuation in
+            let newAuthProcess = Process()
+            newAuthProcess.executableURL = URL(fileURLWithPath: binaryPath)
+            newAuthProcess.arguments = ["-config", configPath] + command.arguments
+            
+            let outputPipe = Pipe()
+            let errorPipe = Pipe()
+            newAuthProcess.standardOutput = outputPipe
+            newAuthProcess.standardError = errorPipe
+            
+            var environment = ProcessInfo.processInfo.environment
+            environment["TERM"] = "xterm-256color"
+            newAuthProcess.environment = environment
+            
+            var capturedOutput = ""
+            var hasResumed = false
+            let resumeLock = NSLock()
+            
+            func safeResume(_ result: AuthCommandResult) {
+                resumeLock.lock()
+                defer { resumeLock.unlock() }
+                guard !hasResumed else { return }
+                hasResumed = true
+                continuation.resume(returning: result)
+            }
+            
+            if case .copilotLogin = command {
+                outputPipe.fileHandleForReading.readabilityHandler = { handle in
+                    let data = handle.availableData
+                    if let str = String(data: data, encoding: .utf8), !str.isEmpty {
+                        capturedOutput += str
+                    }
+                }
+            }
+            
+            newAuthProcess.terminationHandler = { [weak self] terminatedProcess in
+                outputPipe.fileHandleForReading.readabilityHandler = nil
+                
+                Task { @MainActor in
+                    self?.authProcess = nil
+                }
+                
+                let status = terminatedProcess.terminationStatus
+                if status == 0 {
+                    safeResume(AuthCommandResult(
+                        success: true,
+                        message: "Authentication completed successfully.",
+                        deviceCode: nil
+                    ))
+                }
+            }
+            
+            do {
+                try newAuthProcess.run()
+                
+                Task { @MainActor in
+                    self.authProcess = newAuthProcess
+                }
+                
+                DispatchQueue.global(qos: .userInitiated).asyncAfter(deadline: .now() + 3.0) {
+                    guard newAuthProcess.isRunning else { return }
+                    
+                    if case .copilotLogin = command {
+                        if let code = self.extractDeviceCode(from: capturedOutput) {
+                            DispatchQueue.main.async {
+                                NSPasteboard.general.clearContents()
+                                NSPasteboard.general.setString(code, forType: .string)
+                            }
+                            
+                            safeResume(AuthCommandResult(
+                                success: true,
+                                message: "🌐 Browser opened for GitHub authentication.\n\n📋 Code copied to clipboard:\n\n\(code)\n\nJust paste it in the browser!",
+                                deviceCode: code
+                            ))
+                        } else {
+                            safeResume(AuthCommandResult(
+                                success: true,
+                                message: "🌐 Browser opened for GitHub authentication.\n\nCheck your browser for the device code.",
+                                deviceCode: nil
+                            ))
+                        }
+                    } else {
+                        safeResume(AuthCommandResult(
+                            success: true,
+                            message: "🌐 Browser opened for authentication.\n\nPlease complete the login in your browser.",
+                            deviceCode: nil
+                        ))
+                    }
+                }
+            } catch {
+                safeResume(AuthCommandResult(
+                    success: false,
+                    message: "Failed to start auth process: \(error.localizedDescription)",
+                    deviceCode: nil
+                ))
+            }
+        }
+    }
+    
+    private nonisolated func extractDeviceCode(from output: String) -> String? {
+        if let codeRange = output.range(of: "enter the code: "),
+           let endRange = output[codeRange.upperBound...].range(of: "\n") {
+            return String(output[codeRange.upperBound..<endRange.lowerBound]).trimmingCharacters(in: .whitespaces)
+        }
+        
+        for line in output.components(separatedBy: "\n") {
+            if line.contains("enter the code:") {
+                let parts = line.components(separatedBy: "enter the code:")
+                if parts.count > 1 {
+                    return parts[1].trimmingCharacters(in: .whitespacesAndNewlines)
+                }
+            }
+        }
+        
+        return nil
     }
 }

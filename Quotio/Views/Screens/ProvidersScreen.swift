@@ -4,6 +4,7 @@
 //
 
 import SwiftUI
+import AppKit
 import UniformTypeIdentifiers
 
 struct ProvidersScreen: View {
@@ -123,6 +124,11 @@ struct AuthFileRow: View {
         HStack(spacing: 12) {
             if let provider = file.providerType {
                 ProviderIcon(provider: provider, size: 24)
+            } else {
+                Image(systemName: "questionmark.circle")
+                    .resizable()
+                    .frame(width: 24, height: 24)
+                    .foregroundStyle(.secondary)
             }
             
             VStack(alignment: .leading, spacing: 2) {
@@ -130,7 +136,7 @@ struct AuthFileRow: View {
                     .fontWeight(.medium)
                 
                 HStack(spacing: 6) {
-                    Text(file.provider.capitalized)
+                    Text(file.providerType?.displayName ?? "[\(file.provider)]")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                     
@@ -176,6 +182,7 @@ struct OAuthSheet: View {
     let onDismiss: () -> Void
     
     @State private var hasStartedAuth = false
+    @State private var selectedKiroMethod: AuthCommand = .kiroGoogleLogin
     
     private var isPolling: Bool {
         viewModel.oauthState?.status == .polling || viewModel.oauthState?.status == .waiting
@@ -187,6 +194,10 @@ struct OAuthSheet: View {
     
     private var isError: Bool {
         viewModel.oauthState?.status == .error
+    }
+    
+    private var kiroAuthMethods: [AuthCommand] {
+        [.kiroGoogleLogin, .kiroAWSAuthCode, .kiroAWSLogin, .kiroImport]
     }
     
     var body: some View {
@@ -214,8 +225,24 @@ struct OAuthSheet: View {
                 .frame(maxWidth: 320)
             }
             
+            if provider == .kiro {
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("oauth.authMethod".localized())
+                        .font(.subheadline)
+                        .fontWeight(.medium)
+                    Picker("", selection: $selectedKiroMethod) {
+                        ForEach(kiroAuthMethods, id: \.self) { method in
+                            Text(method.displayName).tag(method)
+                        }
+                    }
+                    .pickerStyle(.menu)
+                    .labelsHidden()
+                }
+                .frame(maxWidth: 320)
+            }
+            
             if let state = viewModel.oauthState, state.provider == provider {
-                OAuthStatusView(status: state.status, error: state.error, provider: provider)
+                OAuthStatusView(status: state.status, error: state.error, state: state.state, provider: provider)
                     .transition(.opacity.combined(with: .scale(scale: 0.95)))
             }
             
@@ -230,7 +257,7 @@ struct OAuthSheet: View {
                     Button {
                         hasStartedAuth = false
                         Task {
-                            await viewModel.startOAuth(for: provider, projectId: projectId.isEmpty ? nil : projectId)
+                            await viewModel.startOAuth(for: provider, projectId: projectId.isEmpty ? nil : projectId, authMethod: provider == .kiro ? selectedKiroMethod : nil)
                         }
                     } label: {
                         Label("oauth.retry".localized(), systemImage: "arrow.clockwise")
@@ -241,7 +268,7 @@ struct OAuthSheet: View {
                     Button {
                         hasStartedAuth = true
                         Task {
-                            await viewModel.startOAuth(for: provider, projectId: projectId.isEmpty ? nil : projectId)
+                            await viewModel.startOAuth(for: provider, projectId: projectId.isEmpty ? nil : projectId, authMethod: provider == .kiro ? selectedKiroMethod : nil)
                         }
                     } label: {
                         if isPolling {
@@ -274,6 +301,7 @@ struct OAuthSheet: View {
 private struct OAuthStatusView: View {
     let status: OAuthState.OAuthStatus
     let error: String?
+    let state: String?
     let provider: AIProvider
     
     var body: some View {
@@ -308,13 +336,52 @@ private struct OAuthStatusView: View {
                             .foregroundStyle(provider.color)
                     }
                     
-                    Text("oauth.waitingForAuth".localized())
-                        .font(.subheadline)
-                        .fontWeight(.medium)
-                    
-                    Text("oauth.completeBrowser".localized())
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
+                    // For Copilot Device Code flow, show device code with copy button
+                    if provider == .copilot, let deviceCode = state, !deviceCode.isEmpty {
+                        VStack(spacing: 8) {
+                            Text("oauth.enterCodeInBrowser".localized())
+                                .font(.subheadline)
+                                .foregroundStyle(.secondary)
+                            
+                            HStack(spacing: 12) {
+                                Text(deviceCode)
+                                    .font(.system(size: 24, weight: .bold, design: .monospaced))
+                                    .foregroundStyle(provider.color)
+                                    .padding(.horizontal, 16)
+                                    .padding(.vertical, 8)
+                                    .background(provider.color.opacity(0.1))
+                                    .cornerRadius(8)
+                                
+                                Button {
+                                    NSPasteboard.general.clearContents()
+                                    NSPasteboard.general.setString(deviceCode, forType: .string)
+                                } label: {
+                                    Image(systemName: "doc.on.doc")
+                                        .font(.title3)
+                                }
+                                .buttonStyle(.borderless)
+                                .help("action.copyCode".localized())
+                            }
+                            
+                            Text("oauth.waitingForAuth".localized())
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                    } else if provider == .copilot, let message = error {
+                        Text(message)
+                            .font(.caption)
+                            .foregroundStyle(.primary)
+                            .multilineTextAlignment(.center)
+                            .frame(maxWidth: 350)
+                    } else {
+                        Text("oauth.waitingForAuth".localized())
+                            .font(.subheadline)
+                            .fontWeight(.medium)
+                        
+                        Text("oauth.completeBrowser".localized())
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
                 }
                 .padding(.vertical, 16)
                 

@@ -178,6 +178,7 @@ struct LocalizedStrings {
         "action.copy": [.english: "Copy", .vietnamese: "Sao chép"],
         "action.delete": [.english: "Delete", .vietnamese: "Xóa"],
         "action.refresh": [.english: "Refresh", .vietnamese: "Làm mới"],
+        "action.copyCode": [.english: "Copy Code", .vietnamese: "Sao chép mã"],
         
         // Empty states
         "empty.proxyNotRunning": [.english: "Proxy Not Running", .vietnamese: "Proxy chưa chạy"],
@@ -205,6 +206,8 @@ struct LocalizedStrings {
         "oauth.closingSheet": [.english: "Closing...", .vietnamese: "Đang đóng..."],
         "oauth.failed": [.english: "Authentication failed", .vietnamese: "Xác thực thất bại"],
         "oauth.timeout": [.english: "Authentication timeout", .vietnamese: "Hết thời gian xác thực"],
+        "oauth.authMethod": [.english: "Authentication Method", .vietnamese: "Phương thức xác thực"],
+        "oauth.enterCodeInBrowser": [.english: "Enter this code in browser", .vietnamese: "Nhập mã này trong trình duyệt"],
         
         "import.vertexKey": [.english: "Import Service Account Key", .vietnamese: "Nhập khóa tài khoản dịch vụ"],
         "import.vertexDesc": [.english: "Select the JSON key file for your Vertex AI service account", .vietnamese: "Chọn tệp khóa JSON cho tài khoản dịch vụ Vertex AI"],
@@ -337,6 +340,27 @@ struct LocalizedStrings {
         "about.buyMeCoffee": [.english: "Buy Me a Coffee", .vietnamese: "Mua cho tôi ly cà phê"],
         "about.buyMePizza": [.english: "Buy Me a Pizza", .vietnamese: "Mua cho tôi miếng pizza"],
         "about.madeWith": [.english: "Made with ❤️ in Vietnam", .vietnamese: "Được tạo với ❤️ tại Việt Nam"],
+        
+        // Onboarding
+        "onboarding.installCLI": [.english: "Install CLIProxyAPI", .vietnamese: "Cài đặt CLIProxyAPI"],
+        "onboarding.installCLIDesc": [.english: "Download the proxy binary to get started", .vietnamese: "Tải xuống binary proxy để bắt đầu"],
+        "onboarding.startProxy": [.english: "Start Proxy Server", .vietnamese: "Khởi động Proxy Server"],
+        "onboarding.startProxyDesc": [.english: "Start the local proxy to connect AI providers", .vietnamese: "Khởi động proxy cục bộ để kết nối các nhà cung cấp AI"],
+        "onboarding.addProvider": [.english: "Connect AI Provider", .vietnamese: "Kết nối nhà cung cấp AI"],
+        "onboarding.addProviderDesc": [.english: "Add at least one AI provider account", .vietnamese: "Thêm ít nhất một tài khoản nhà cung cấp AI"],
+        "onboarding.connectAccount": [.english: "Connect Account", .vietnamese: "Kết nối tài khoản"],
+        "onboarding.configureAgent": [.english: "Configure CLI Agent", .vietnamese: "Cấu hình CLI Agent"],
+        "onboarding.configureAgentDesc": [.english: "Set up your AI coding assistant", .vietnamese: "Thiết lập trợ lý AI coding của bạn"],
+        "onboarding.complete": [.english: "You're All Set!", .vietnamese: "Đã sẵn sàng!"],
+        "onboarding.completeDesc": [.english: "Quotio is ready to supercharge your AI coding", .vietnamese: "Quotio đã sẵn sàng tăng cường AI coding của bạn"],
+        "onboarding.skip": [.english: "Skip Setup", .vietnamese: "Bỏ qua"],
+        "onboarding.goToDashboard": [.english: "Go to Dashboard", .vietnamese: "Đến Dashboard"],
+        "onboarding.providersConfigured": [.english: "providers connected", .vietnamese: "nhà cung cấp đã kết nối"],
+        "onboarding.agentsConfigured": [.english: "agents configured", .vietnamese: "agent đã cấu hình"],
+        
+        // Dashboard
+        "dashboard.gettingStarted": [.english: "Getting Started", .vietnamese: "Bắt đầu"],
+        "action.dismiss": [.english: "Dismiss", .vietnamese: "Ẩn"],
     ]
     
     static func get(_ key: String, language: AppLanguage) -> String {

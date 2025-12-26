@@ -14,6 +14,7 @@ final class QuotaViewModel {
     private var apiClient: ManagementAPIClient?
     private let antigravityFetcher = AntigravityQuotaFetcher()
     private let openAIFetcher = OpenAIQuotaFetcher()
+    private let copilotFetcher = CopilotQuotaFetcher()
     private let notificationManager = NotificationManager.shared
     private var lastKnownAccountStatuses: [String: String] = [:]
     
@@ -157,8 +158,9 @@ final class QuotaViewModel {
         
         async let antigravity: () = refreshAntigravityQuotasInternal()
         async let openai: () = refreshOpenAIQuotasInternal()
+        async let copilot: () = refreshCopilotQuotasInternal()
         
-        _ = await (antigravity, openai)
+        _ = await (antigravity, openai, copilot)
         
         checkQuotaNotifications()
         
@@ -178,25 +180,22 @@ final class QuotaViewModel {
         providerQuotas[.codex] = quotas
     }
     
-    func refreshAntigravityQuotas() async {
-        isLoadingQuotas = true
-        
-        let quotas = await antigravityFetcher.fetchAllAntigravityQuotas()
-        providerQuotas[.antigravity] = quotas
-        
-        let subscriptions = await antigravityFetcher.fetchAllSubscriptionInfo()
-        subscriptionInfos = subscriptions
-        
-        isLoadingQuotas = false
+    private func refreshCopilotQuotasInternal() async {
+        let quotas = await copilotFetcher.fetchAllCopilotQuotas()
+        providerQuotas[.copilot] = quotas
     }
     
-    func refreshOpenAIQuotas() async {
-        let quotas = await openAIFetcher.fetchAllCodexQuotas()
-        providerQuotas[.codex] = quotas
-    }
-    
-    func getQuotaForAccount(provider: AIProvider, email: String) -> ProviderQuotaData? {
-        return providerQuotas[provider]?[email]
+    func refreshQuotaForProvider(_ provider: AIProvider) async {
+        switch provider {
+        case .antigravity:
+            await refreshAntigravityQuotasInternal()
+        case .codex:
+            await refreshOpenAIQuotasInternal()
+        case .copilot:
+            await refreshCopilotQuotasInternal()
+        default:
+            break
+        }
     }
     
     func refreshLogs() async {
@@ -229,7 +228,19 @@ final class QuotaViewModel {
         }
     }
     
-    func startOAuth(for provider: AIProvider, projectId: String? = nil) async {
+    func startOAuth(for provider: AIProvider, projectId: String? = nil, authMethod: AuthCommand? = nil) async {
+        // GitHub Copilot uses Device Code Flow via CLI binary, not Management API
+        if provider == .copilot {
+            await startCopilotAuth()
+            return
+        }
+        
+        // Kiro uses CLI-based auth with multiple options
+        if provider == .kiro {
+            await startKiroAuth(method: authMethod ?? .kiroGoogleLogin)
+            return
+        }
+        
         guard let client = apiClient else {
             errorMessage = "Proxy not running"
             return
@@ -255,6 +266,80 @@ final class QuotaViewModel {
         } catch {
             oauthState = OAuthState(provider: provider, status: .error, error: error.localizedDescription)
         }
+    }
+    
+    /// Start GitHub Copilot authentication using Device Code Flow
+    private func startCopilotAuth() async {
+        oauthState = OAuthState(provider: .copilot, status: .waiting)
+        
+        let result = await proxyManager.runAuthCommand(.copilotLogin)
+        
+        if result.success {
+            if let deviceCode = result.deviceCode {
+                oauthState = OAuthState(provider: .copilot, status: .polling, state: deviceCode, error: result.message)
+            } else {
+                oauthState = OAuthState(provider: .copilot, status: .polling, error: result.message)
+            }
+            
+            await pollCopilotAuthCompletion()
+        } else {
+            oauthState = OAuthState(provider: .copilot, status: .error, error: result.message)
+        }
+    }
+    
+    private func startKiroAuth(method: AuthCommand) async {
+        oauthState = OAuthState(provider: .kiro, status: .waiting)
+        
+        let result = await proxyManager.runAuthCommand(method)
+        
+        if result.success {
+            if let deviceCode = result.deviceCode {
+                oauthState = OAuthState(provider: .kiro, status: .polling, state: deviceCode, error: result.message)
+            } else {
+                oauthState = OAuthState(provider: .kiro, status: .polling, error: result.message)
+            }
+            
+            await pollKiroAuthCompletion()
+        } else {
+            oauthState = OAuthState(provider: .kiro, status: .error, error: result.message)
+        }
+    }
+    
+    /// Poll for Copilot auth completion by monitoring auth files
+    private func pollCopilotAuthCompletion() async {
+        let startFileCount = authFiles.filter { $0.provider == "github-copilot" || $0.provider == "copilot" }.count
+        
+        for _ in 0..<90 {
+            try? await Task.sleep(nanoseconds: 2_000_000_000)
+            
+            await refreshData()
+            
+            let currentFileCount = authFiles.filter { $0.provider == "github-copilot" || $0.provider == "copilot" }.count
+            if currentFileCount > startFileCount {
+                oauthState = OAuthState(provider: .copilot, status: .success)
+                return
+            }
+        }
+        
+        oauthState = OAuthState(provider: .copilot, status: .error, error: "Authentication timeout")
+    }
+    
+    private func pollKiroAuthCompletion() async {
+        let startFileCount = authFiles.filter { $0.provider == "kiro" }.count
+        
+        for _ in 0..<90 {
+            try? await Task.sleep(nanoseconds: 2_000_000_000)
+            
+            await refreshData()
+            
+            let currentFileCount = authFiles.filter { $0.provider == "kiro" }.count
+            if currentFileCount > startFileCount {
+                oauthState = OAuthState(provider: .kiro, status: .success)
+                return
+            }
+        }
+        
+        oauthState = OAuthState(provider: .kiro, status: .error, error: "Authentication timeout")
     }
     
     private func pollOAuthStatus(state: String, provider: AIProvider) async {
@@ -409,7 +494,7 @@ final class QuotaViewModel {
             for (account, quotaData) in accountQuotas {
                 guard !quotaData.models.isEmpty else { continue }
                 
-                let minRemainingPercent = Double(quotaData.models.map(\.percentage).min() ?? 100)
+                let minRemainingPercent = quotaData.models.map(\.percentage).min() ?? 100.0
                 
                 if minRemainingPercent <= notificationManager.quotaAlertThreshold {
                     notificationManager.notifyQuotaLow(

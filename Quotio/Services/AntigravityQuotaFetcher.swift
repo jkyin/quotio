@@ -9,13 +9,20 @@ import Foundation
 
 struct ModelQuota: Codable, Identifiable, Sendable {
     let name: String
-    let percentage: Int
+    let percentage: Double
     let resetTime: String
     
     var id: String { name }
     
-    var usedPercentage: Int {
+    var usedPercentage: Double {
         100 - percentage
+    }
+    
+    var formattedPercentage: String {
+        if percentage == percentage.rounded() {
+            return String(format: "%.0f%%", percentage)
+        }
+        return String(format: "%.2f%%", percentage)
     }
     
     var displayName: String {
@@ -26,6 +33,9 @@ struct ModelQuota: Codable, Identifiable, Sendable {
         case "claude-sonnet-4-5-thinking": return "Claude 4.5"
         case "codex-session": return "Session"
         case "codex-weekly": return "Weekly"
+        case "copilot-chat": return "Chat"
+        case "copilot-completions": return "Completions"
+        case "copilot-premium": return "Premium"
         default: return name
         }
     }
@@ -297,7 +307,7 @@ actor AntigravityQuotaFetcher {
                     guard name.contains("gemini") || name.contains("claude") else { continue }
                     
                     if let quotaInfo = info.quotaInfo {
-                        let percentage = Int((quotaInfo.remainingFraction ?? 0) * 100)
+                        let percentage = (quotaInfo.remainingFraction ?? 0) * 100
                         let resetTime = quotaInfo.resetTime ?? ""
                         models.append(ModelQuota(name: name, percentage: percentage, resetTime: resetTime))
                     }
@@ -454,18 +464,18 @@ actor AntigravityQuotaFetcher {
 // MARK: - Errors
 
 enum QuotaFetchError: LocalizedError {
+    case invalidURL
     case invalidResponse
+    case forbidden
     case httpError(Int)
-    case decodingError(String)
-    case tokenRefreshFailed
     case unknown
     
     var errorDescription: String? {
         switch self {
+        case .invalidURL: return "Invalid URL"
         case .invalidResponse: return "Invalid response from server"
+        case .forbidden: return "Access forbidden"
         case .httpError(let code): return "HTTP error: \(code)"
-        case .decodingError(let msg): return "Failed to decode: \(msg)"
-        case .tokenRefreshFailed: return "Failed to refresh token"
         case .unknown: return "Unknown error"
         }
     }

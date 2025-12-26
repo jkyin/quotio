@@ -8,19 +8,10 @@ import SwiftUI
 struct QuotaScreen: View {
     @Environment(QuotaViewModel.self) private var viewModel
     
-    private var antigravityAccounts: [AuthFile] {
-        viewModel.authFiles.filter { $0.providerType == .antigravity }
-    }
-    
-    private var codexAccounts: [AuthFile] {
-        viewModel.authFiles.filter { $0.providerType == .codex }
-    }
-    
-    private var otherProviderGroups: [(AIProvider, [AuthFile])] {
+    private var providerGroups: [(AIProvider, [AuthFile])] {
         let grouped = Dictionary(grouping: viewModel.authFiles) { $0.providerType }
         return AIProvider.allCases.compactMap { provider in
-            guard provider != .antigravity && provider != .codex,
-                  let files = grouped[provider], !files.isEmpty else { return nil }
+            guard let files = grouped[provider], !files.isEmpty else { return nil }
             return (provider, files)
         }
     }
@@ -34,11 +25,7 @@ struct QuotaScreen: View {
     }
     
     private var providerCount: Int {
-        var count = 0
-        if !antigravityAccounts.isEmpty { count += 1 }
-        if !codexAccounts.isEmpty { count += 1 }
-        count += otherProviderGroups.count
-        return count
+        providerGroups.count
     }
     
     var body: some View {
@@ -65,29 +52,12 @@ struct QuotaScreen: View {
                         )
                         
                         LazyVStack(spacing: 20) {
-                            if !antigravityAccounts.isEmpty {
+                            ForEach(providerGroups, id: \.0) { provider, accounts in
                                 ProviderQuotaSection(
-                                    provider: .antigravity,
-                                    accounts: antigravityAccounts,
-                                    quotaData: viewModel.providerQuotas[.antigravity],
-                                    isLoading: viewModel.isLoadingQuotas
-                                )
-                            }
-                            
-                            if !codexAccounts.isEmpty {
-                                ProviderQuotaSection(
-                                    provider: .codex,
-                                    accounts: codexAccounts,
-                                    quotaData: viewModel.providerQuotas[.codex],
-                                    isLoading: viewModel.isLoadingQuotas
-                                )
-                            }
-                            
-                            ForEach(otherProviderGroups, id: \.0) { provider, accounts in
-                                QuotaCard(
                                     provider: provider,
                                     accounts: accounts,
-                                    quotaData: viewModel.providerQuotas[provider]
+                                    quotaData: viewModel.providerQuotas[provider],
+                                    isLoading: viewModel.isLoadingQuotas
                                 )
                             }
                         }
@@ -97,6 +67,16 @@ struct QuotaScreen: View {
             }
         }
         .navigationTitle("nav.quota".localized())
+        .toolbar {
+            ToolbarItem(placement: .primaryAction) {
+                Button {
+                    Task { await viewModel.refreshAllQuotas() }
+                } label: {
+                    Image(systemName: "arrow.clockwise")
+                }
+                .disabled(!viewModel.proxyManager.proxyStatus.running || viewModel.isLoadingQuotas)
+            }
+        }
     }
 }
 
@@ -110,9 +90,10 @@ private struct ProviderQuotaSection: View {
         Section {
             ForEach(accounts) { account in
                 AccountQuotaCard(
+                    provider: provider,
                     account: account,
-                    quotaData: quotaData?[account.email ?? ""],
-                    isLoading: isLoading && quotaData?[account.email ?? ""] == nil
+                    quotaData: quotaData?[account.quotaLookupKey],
+                    isLoading: isLoading && quotaData?[account.quotaLookupKey] == nil
                 )
             }
         } header: {
@@ -133,9 +114,12 @@ private struct ProviderQuotaSection: View {
 
 struct AccountQuotaCard: View {
     @Environment(QuotaViewModel.self) private var viewModel
+    let provider: AIProvider
     let account: AuthFile
     let quotaData: ProviderQuotaData?
     var isLoading: Bool = false
+    
+    @State private var isRefreshing = false
     
     private var hasQuotaData: Bool {
         guard let data = quotaData else { return false }
@@ -143,13 +127,11 @@ struct AccountQuotaCard: View {
     }
     
     private var subscriptionInfo: SubscriptionInfo? {
-        guard let email = account.email else { return nil }
-        return viewModel.subscriptionInfos[email]
+        return viewModel.subscriptionInfos[account.quotaLookupKey]
     }
     
     private var isLoadingSubscription: Bool {
-        guard let email = account.email else { return false }
-        return viewModel.isLoadingQuotas && viewModel.subscriptionInfos[email] == nil
+        return viewModel.isLoadingQuotas && viewModel.subscriptionInfos[account.quotaLookupKey] == nil
     }
     
     var body: some View {
@@ -165,6 +147,21 @@ struct AccountQuotaCard: View {
                         .fontWeight(.semibold)
                     
                     Spacer()
+                    
+                    Button {
+                        Task {
+                            isRefreshing = true
+                            await viewModel.refreshQuotaForProvider(provider)
+                            isRefreshing = false
+                        }
+                    } label: {
+                        Image(systemName: "arrow.clockwise")
+                            .font(.subheadline)
+                    }
+                    .buttonStyle(.plain)
+                    .foregroundStyle(.secondary)
+                    .disabled(isRefreshing || isLoading)
+                    .opacity(isRefreshing ? 0.5 : 1)
                     
                     if let data = quotaData, data.isForbidden {
                         Label("status.forbidden".localized(), systemImage: "exclamationmark.triangle.fill")
@@ -361,7 +358,7 @@ private struct SubscriptionBadge: View {
 private struct ModelQuotaRow: View {
     let model: ModelQuota
     
-    private var remainingPercent: Int {
+    private var remainingPercent: Double {
         model.percentage
     }
     
@@ -381,7 +378,7 @@ private struct ModelQuotaRow: View {
                 Spacer()
                 
                 HStack(spacing: 12) {
-                    Text(verbatim: "\(remainingPercent)%")
+                    Text(model.formattedPercentage)
                         .font(.subheadline)
                         .fontWeight(.semibold)
                         .foregroundStyle(tint)
@@ -409,7 +406,7 @@ private struct ModelQuotaRow: View {
                         .fill(.quaternary)
                     Capsule()
                         .fill(tint.gradient)
-                        .frame(width: proxy.size.width * min(1, Double(remainingPercent) / 100))
+                        .frame(width: proxy.size.width * min(1, remainingPercent / 100))
                 }
             }
             .frame(height: 10)
