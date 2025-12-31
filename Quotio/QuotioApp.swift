@@ -296,8 +296,7 @@ struct ContentView: View {
                     if modeManager.isFullMode {
                         // Full mode: proxy controls
                         if viewModel.proxyManager.isStarting {
-                            ProgressView()
-                                .controlSize(.small)
+                            SmallProgressView()
                         } else {
                             Button {
                                 Task { await viewModel.toggleProxy() }
@@ -493,9 +492,7 @@ struct ProxyStatusRow: View {
     var body: some View {
         HStack {
             if viewModel.proxyManager.isStarting {
-                ProgressView()
-                    .controlSize(.mini)
-                    .frame(width: 8, height: 8)
+                SmallProgressView(size: 8)
             } else {
                 Circle()
                     .fill(viewModel.proxyManager.proxyStatus.running ? .green : .gray)
@@ -526,9 +523,7 @@ struct QuotaRefreshStatusRow: View {
     var body: some View {
         HStack {
             if viewModel.isLoadingQuotas {
-                ProgressView()
-                    .controlSize(.mini)
-                    .frame(width: 8, height: 8)
+                SmallProgressView(size: 8)
                 Text("status.refreshing".localized())
                     .font(.caption)
             } else {
