@@ -10,12 +10,12 @@
 | ---- | ----- | ----- |
 | `Quotio/Views/Screens/APIKeysScreen.swift` | 260 |  |
 | `Quotio/Views/Screens/AgentSetupScreen.swift` | 200 |  |
-| `Quotio/Views/Screens/DashboardScreen.swift` | 915 | 📊 |
+| `Quotio/Views/Screens/DashboardScreen.swift` | 1006 | 📊 |
 | `Quotio/Views/Screens/FallbackScreen.swift` | 531 | 📊 |
 | `Quotio/Views/Screens/LogsScreen.swift` | 423 |  |
 | `Quotio/Views/Screens/ProvidersScreen.swift` | 916 | 📊 |
 | `Quotio/Views/Screens/QuotaScreen.swift` | 1246 | 📊 |
-| `Quotio/Views/Screens/SettingsScreen.swift` | 2694 | 📊 |
+| `Quotio/Views/Screens/SettingsScreen.swift` | 2698 | 📊 |
 
 ## Documentation
 

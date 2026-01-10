@@ -79,39 +79,41 @@ Symbol maps for 3 large files in this module.
 | 490 | fn | urlSession | (internal) |
 | 500 | fn | urlSession | (internal) |
 
-## Quotio/Services/StatusBarMenuBuilder.swift (907 lines)
+## Quotio/Services/StatusBarMenuBuilder.swift (995 lines)
 
 | Line | Kind | Name | Visibility |
 | ---- | ---- | ---- | ---------- |
 | 18 | class | StatusBarMenuBuilder | (internal) |
 | 27 | method | init | (internal) |
 | 33 | fn | buildMenu | (internal) |
-| 113 | fn | resolveSelectedProvider | (private) |
-| 122 | fn | accountsForProvider | (private) |
-| 129 | fn | buildHeaderItem | (private) |
-| 136 | fn | buildProxyInfoItem | (private) |
-| 154 | fn | buildAccountCardItem | (private) |
-| 187 | fn | showSwitchConfirmation | (private) |
-| 216 | fn | buildAntigravitySubmenu | (private) |
-| 232 | fn | buildEmptyStateItem | (private) |
-| 239 | fn | buildActionItems | (private) |
-| 263 | class | MenuActionHandler | (internal) |
-| 272 | fn | refresh | (internal) |
-| 278 | fn | openApp | (internal) |
-| 282 | fn | quit | (internal) |
-| 286 | fn | openMainWindow | (internal) |
-| 311 | struct | MenuHeaderView | (private) |
-| 334 | struct | MenuProxyInfoView | (private) |
-| 393 | struct | MenuProviderPickerView | (private) |
-| 428 | struct | ProviderFilterButton | (private) |
-| 453 | struct | ProviderIconMono | (private) |
-| 477 | struct | MenuAccountCardView | (private) |
-| 675 | struct | AntigravityDisplayGroup | (private) |
-| 684 | struct | ModelBadgeData | (private) |
-| 691 | struct | ModelGridBadge | (private) |
-| 746 | struct | MenuModelDetailView | (private) |
-| 798 | struct | MenuEmptyStateView | (private) |
-| 813 | mod | extension AIProvider | (private) |
-| 834 | struct | MenuActionsView | (private) |
-| 872 | struct | MenuBarActionButton | (private) |
+| 119 | fn | resolveSelectedProvider | (private) |
+| 128 | fn | accountsForProvider | (private) |
+| 135 | fn | buildHeaderItem | (private) |
+| 142 | fn | buildProxyInfoItem | (private) |
+| 158 | fn | buildTunnelItem | (private) |
+| 176 | fn | buildAccountCardItem | (private) |
+| 209 | fn | showSwitchConfirmation | (private) |
+| 238 | fn | buildAntigravitySubmenu | (private) |
+| 254 | fn | buildEmptyStateItem | (private) |
+| 261 | fn | buildActionItems | (private) |
+| 285 | class | MenuActionHandler | (internal) |
+| 294 | fn | refresh | (internal) |
+| 300 | fn | openApp | (internal) |
+| 304 | fn | quit | (internal) |
+| 308 | fn | openMainWindow | (internal) |
+| 333 | struct | MenuHeaderView | (private) |
+| 356 | struct | MenuProxyInfoView | (private) |
+| 415 | struct | MenuProviderPickerView | (private) |
+| 450 | struct | ProviderFilterButton | (private) |
+| 475 | struct | ProviderIconMono | (private) |
+| 499 | struct | MenuAccountCardView | (private) |
+| 697 | struct | AntigravityDisplayGroup | (private) |
+| 706 | struct | ModelBadgeData | (private) |
+| 713 | struct | ModelGridBadge | (private) |
+| 768 | struct | MenuModelDetailView | (private) |
+| 820 | struct | MenuEmptyStateView | (private) |
+| 835 | mod | extension AIProvider | (private) |
+| 856 | struct | MenuActionsView | (private) |
+| 894 | struct | MenuBarActionButton | (private) |
+| 932 | struct | MenuTunnelView | (private) |
 
