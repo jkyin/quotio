@@ -16907,6 +16907,35 @@
         }
       }
     },
+    "tunnel.error.startTimeout" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tunnel start timed out"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Délai d'attente du démarrage du tunnel dépassé"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hết thời gian khởi động tunnel"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "隧道启动超时"
+          }
+        }
+      }
+    },
     "tunnel.info.noAccount" : {
       "extractionState" : "stale",
       "localizations" : {

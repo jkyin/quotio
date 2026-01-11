@@ -29,6 +29,10 @@ final class CLIProxyManager {
         get { UserDefaults.standard.bool(forKey: "allowNetworkAccess") }
         set { 
             UserDefaults.standard.set(newValue, forKey: "allowNetworkAccess")
+            ensureConfigExists()
+            if newValue {
+                ensureApiKeyExistsInConfig()
+            }
             updateConfigHost(newValue ? "0.0.0.0" : "127.0.0.1")
             
             // Restart proxy if running to apply changes
@@ -234,6 +238,55 @@ final class CLIProxyManager {
 
     private func updateConfigHost(_ host: String) {
         updateConfigValue(pattern: #"host:\s*"[^"]*""#, replacement: "host: \"\(host)\"")
+    }
+
+    private func ensureApiKeyExistsInConfig() {
+        guard FileManager.default.fileExists(atPath: configPath),
+              let content = try? String(contentsOfFile: configPath, encoding: .utf8) else {
+            return
+        }
+
+        var lines = content.components(separatedBy: "\n")
+        if let apiKeysIndex = lines.firstIndex(where: { $0.trimmingCharacters(in: .whitespaces) == "api-keys:" }) {
+            var hasKey = false
+            var scanIndex = apiKeysIndex + 1
+
+            while scanIndex < lines.count {
+                let line = lines[scanIndex]
+                let trimmed = line.trimmingCharacters(in: .whitespaces)
+
+                if trimmed.isEmpty {
+                    break
+                }
+
+                if trimmed.hasPrefix("-") {
+                    let value = trimmed.dropFirst().trimmingCharacters(in: .whitespacesAndNewlines)
+                    if !value.isEmpty { hasKey = true }
+                    scanIndex += 1
+                    continue
+                }
+
+                if !line.hasPrefix(" ") && !line.hasPrefix("\t") {
+                    break
+                }
+
+                scanIndex += 1
+            }
+
+            if !hasKey {
+                let newKey = "quotio-local-\(UUID().uuidString)"
+                lines.insert("  - \"\(newKey)\"", at: apiKeysIndex + 1)
+                try? lines.joined(separator: "\n").write(toFile: configPath, atomically: true, encoding: .utf8)
+            }
+            return
+        }
+
+        let newKey = "quotio-local-\(UUID().uuidString)"
+        lines.append("")
+        lines.append("api-keys:")
+        lines.append("  - \"\(newKey)\"")
+        lines.append("")
+        try? lines.joined(separator: "\n").write(toFile: configPath, atomically: true, encoding: .utf8)
     }
     
     func updateConfigLogging(enabled: Bool) {

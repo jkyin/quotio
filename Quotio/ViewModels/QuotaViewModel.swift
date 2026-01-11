@@ -29,6 +29,7 @@ final class QuotaViewModel {
     private var warmupStatuses: [WarmupAccountKey: WarmupStatus] = [:]
     @ObservationIgnored private var warmupModelCache: [WarmupAccountKey: (models: [WarmupModelInfo], fetchedAt: Date)] = [:]
     @ObservationIgnored private let warmupModelCacheTTL: TimeInterval = 28800
+    @ObservationIgnored private var lastProxyURL: String?
     
     /// Request tracker for monitoring API requests through ProxyBridge
     let requestTracker = RequestTracker.shared
@@ -120,6 +121,7 @@ final class QuotaViewModel {
         setupRefreshCadenceCallback()
         setupWarmupCallback()
         restartWarmupScheduler()
+        lastProxyURL = normalizedProxyURL(UserDefaults.standard.string(forKey: "proxyURL"))
         setupProxyURLObserver()
     }
 
@@ -129,11 +131,24 @@ final class QuotaViewModel {
             object: nil,
             queue: .main
         ) { [weak self] _ in
-            // Check if proxyURL changed and update configuration
             Task { @MainActor [weak self] in
-                await self?.updateProxyConfiguration()
+                guard let self = self else { return }
+                let currentProxyURL = self.normalizedProxyURL(UserDefaults.standard.string(forKey: "proxyURL"))
+                guard currentProxyURL != self.lastProxyURL else { return }
+                self.lastProxyURL = currentProxyURL
+                await self.updateProxyConfiguration()
             }
         }
+    }
+
+    private func normalizedProxyURL(_ rawValue: String?) -> String? {
+        guard let rawValue = rawValue?.trimmingCharacters(in: .whitespacesAndNewlines),
+              !rawValue.isEmpty else {
+            return nil
+        }
+
+        let sanitized = ProxyURLValidator.sanitize(rawValue)
+        return sanitized.isEmpty ? nil : sanitized
     }
 
     /// Update proxy configuration for all quota fetchers
@@ -905,6 +920,12 @@ final class QuotaViewModel {
     func stopProxy() {
         refreshTask?.cancel()
         refreshTask = nil
+
+        if tunnelManager.tunnelState.isActive || tunnelManager.tunnelState.status == .starting {
+            Task { @MainActor in
+                await tunnelManager.stopTunnel()
+            }
+        }
         
         // Stop RequestTracker
         requestTracker.stop()
