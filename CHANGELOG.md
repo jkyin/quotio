@@ -13,6 +13,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Add translations for zh-Hans, vi, fr
 - **proxy**: Parse detailed error messages from proxy responses (#251)
   - Extract and display actionable error messages from CLIProxyAPI
+- **logging**: Add unified Logger with privacy controls and DEBUG guards
+  - Nonisolated enum callable from any actor context
+  - Category-based logging: API, Quota, Proxy, Auth, Keychain, Warmup, Update
+  - Privacy helpers: `Log.mask()` and `Log.maskEmail()`
 
 ### Fixed
 
@@ -27,6 +31,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Auth commands and Finder reveal now use correct binary path
 - **models**: Remove model list caching to always fetch fresh data (#255)
   - Fix stale model lists after CLIProxyAPI configuration changes
+- **security**: Replace print() statements with Logger to prevent data leakage
+  - All debug logging disabled in Release builds via `#if DEBUG`
+  - Replaced 19 print() calls across 9 files with category-specific Log methods
+- **security**: Migrate sensitive keys from UserDefaults to Keychain
+  - Local management key now stored in Keychain with auto-migration
+  - Warp tokens now stored in Keychain with auto-migration
+  - Legacy UserDefaults data automatically migrated on first access
+- **safety**: Fix force unwraps to prevent potential crashes
+  - AtomFeedUpdateService: Safe version comparison with if-let
+  - QuotaFetchers: Guard-based URL construction with proper error handling
+  - FileManager paths: Guard with fatalError for critical system directories
+  - Add `invalidURL` cases to CodexQuotaError and CodexCLIQuotaError
 
 ## [0.7.9] - 2026-01-29
 
