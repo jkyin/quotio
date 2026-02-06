@@ -18,20 +18,20 @@
 | `Quotio/Services/DirectAuthFileService.swift` | 487 |  |
 | `Quotio/Services/FallbackSettingsManager.swift` | 338 |  |
 | `Quotio/Services/GLMQuotaFetcher.swift` | 186 |  |
-| `Quotio/Services/ImageCacheService.swift` | 135 |  |
+| `Quotio/Services/ImageCacheService.swift` | 131 |  |
 | `Quotio/Services/KeychainHelper.swift` | 167 |  |
 | `Quotio/Services/LanguageManager.swift` | 115 |  |
 | `Quotio/Services/LaunchAtLoginManager.swift` | 189 |  |
 | `Quotio/Services/Logger.swift` | 124 |  |
-| `Quotio/Services/ManagementAPIClient.swift` | 727 | 📊 |
-| `Quotio/Services/NotificationManager.swift` | 331 |  |
+| `Quotio/Services/ManagementAPIClient.swift` | 731 | 📊 |
+| `Quotio/Services/NotificationManager.swift` | 334 |  |
 | `Quotio/Services/ProxyConfigurationService.swift` | 96 |  |
 | `Quotio/Services/RequestTracker.swift` | 192 |  |
 | `Quotio/Services/ShellProfileManager.swift` | 121 |  |
-| `Quotio/Services/StatusBarManager.swift` | 240 |  |
+| `Quotio/Services/StatusBarManager.swift` | 246 |  |
 | `Quotio/Services/StatusBarMenuBuilder.swift` | 1415 | 📊 |
 | `Quotio/Services/UpdaterService.swift` | 168 |  |
-| `Quotio/Services/WarmupService.swift` | 183 |  |
+| `Quotio/Services/WarmupService.swift` | 185 |  |
 | `Quotio/Services/WarpService.swift` | 83 |  |
 
 ## Child Modules
