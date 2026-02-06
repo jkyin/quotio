@@ -23,7 +23,7 @@
 | `Quotio/Services/LanguageManager.swift` | 115 |  |
 | `Quotio/Services/LaunchAtLoginManager.swift` | 189 |  |
 | `Quotio/Services/Logger.swift` | 124 |  |
-| `Quotio/Services/ManagementAPIClient.swift` | 731 | 📊 |
+| `Quotio/Services/ManagementAPIClient.swift` | 732 | 📊 |
 | `Quotio/Services/NotificationManager.swift` | 334 |  |
 | `Quotio/Services/ProxyConfigurationService.swift` | 96 |  |
 | `Quotio/Services/RequestTracker.swift` | 192 |  |

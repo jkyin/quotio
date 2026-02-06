@@ -68,20 +68,20 @@ Symbol maps for 4 large files in this module.
 | 470 | fn | parser | (internal) |
 | 515 | enum | AtomFeedError | (internal) |
 
-## Quotio/Services/ManagementAPIClient.swift (731 lines)
+## Quotio/Services/ManagementAPIClient.swift (732 lines)
 
 | Line | Kind | Name | Visibility |
 | ---- | ---- | ---- | ---------- |
 | 8 | class | ManagementAPIClient | (internal) |
 | 45 | fn | custom | (internal) |
 | 55 | fn | log | (private) |
-| 61 | fn | incrementActiveRequests | (private) |
-| 68 | fn | decrementActiveRequests | (private) |
-| 79 | method | init | (internal) |
-| 102 | method | init | (internal) |
-| 127 | method | init | (internal) |
-| 140 | fn | invalidate | (internal) |
-| 145 | fn | makeRequest | (private) |
+| 60 | fn | incrementActiveRequests | (private) |
+| 67 | fn | decrementActiveRequests | (private) |
+| 78 | method | init | (internal) |
+| 101 | method | init | (internal) |
+| 126 | method | init | (internal) |
+| 139 | fn | invalidate | (internal) |
+| 144 | fn | makeRequest | (private) |
 | 206 | fn | fetchAuthFiles | (internal) |
 | 212 | fn | fetchAuthFileModels | (internal) |
 | 219 | fn | apiCall | (internal) |
@@ -127,9 +127,9 @@ Symbol maps for 4 large files in this module.
 | 507 | method | init | (internal) |
 | 513 | fn | urlSession | (internal) |
 | 518 | fn | urlSession | (internal) |
-| 528 | fn | urlSession | (internal) |
-| 707 | method | init | (internal) |
-| 721 | fn | encode | (internal) |
+| 529 | fn | urlSession | (internal) |
+| 708 | method | init | (internal) |
+| 722 | fn | encode | (internal) |
 
 ## Quotio/Services/StatusBarMenuBuilder.swift (1415 lines)
 
